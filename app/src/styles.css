@@ -2888,3 +2888,53 @@ footer span:last-child {
 .news-categories{gap:23px;margin-bottom:20px}.news-categories button{font-size:14px;padding:14px 1px}.news-feature{grid-template-columns:minmax(0,1fr) 65px;padding:22px 17px;gap:13px;margin-bottom:19px}.news-feature h2{font-size:23px;line-height:1.75;margin-top:9px}.news-feature p{font-size:13px;line-height:1.9;margin-bottom:15px}.feature-identity{border:0;justify-content:flex-start;padding-top:43px;gap:12px}.feature-identity .crest-frame{width:59px;height:73px}.feature-identity .crest{width:53px;height:66px}.feature-identity>span:not(.crest-frame){font-size:10px;text-align:center;line-height:1.8}.feature-identity .nation-flag{width:53px;height:37px}.feature-label{font-size:11px}.feature-read{margin-top:16px;font-size:12px}.news-feed>header{padding:17px}.news-row{gap:13px;padding:20px 16px;align-items:flex-start}.news-row-identity{width:44px;height:52px}.news-row-identity .crest-frame{width:32px;height:39px}.news-row-identity .crest{width:29px;height:35px}.news-row-identity .nation-flag{width:31px;height:21px}.news-row h3{font-size:17px;line-height:1.65}.news-row p{font-size:12px;line-height:1.9}.news-row>svg{display:none}.news-meta{font-size:10px;gap:4px 9px}.news-story{padding:23px 18px}.news-story>.news-meta{margin-top:24px}.news-story h1{font-size:26px;line-height:1.7}.news-story .story-lead{font-size:16px}.story-point{font-size:15px;gap:13px}.story-discuss{padding:15px 12px;gap:10px}.story-discuss strong{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.forum-row,.news-row,.news-feature,.space-directory a{transition:none}}
 @media(max-width:700px){.space-heading p{display:none}}
+
+/* Portfolio presentation: a single, focused court product. Full-site styles stay preserved. */
+.court-only .topbar { height: 78px; margin-bottom: 26px; flex-wrap: nowrap; }
+.court-only .topbar .main-nav { position: static; left: auto; transform: none; height: 100%; margin: 0 auto 0 22px; padding: 0; gap: 0; order: 0; width: auto; }
+.court-only .topbar .main-nav a { min-width: 0; padding: 0; font-size: 16px; font-weight: 600; color: #283340; }
+.court-only .topbar .main-nav .selected::after { content: none; }
+.court-only .topbar .profile-button { margin-left: auto; }
+.court-lobby-intro { font-size: 16px; line-height: 1.8; color: #6f7887; margin: 13px 0 30px; }
+.court-only .home-hero .hero-controls { margin-top: 28px; }
+.court-only .match-score-link:hover { background: transparent; }
+.court-case-question { grid-column: 1 / -1; color: #596576; font-size: 14px; font-weight: 500; text-align: center; line-height: 1.8; margin-top: 7px; }
+.court-score-note { color: #ffffffb8; font-size: 11px; line-height: 1.8; }
+.court-only .league-panel .match-row { min-height: 138px; }
+@media(max-width:700px) {
+  .court-only .topbar { height: 70px; min-height: 70px; padding: 0; margin-bottom: 20px; display: flex; gap: 0; }
+  .court-only .topbar .main-nav { order: 0; flex: 0 1 auto; margin: 0 auto 0 15px; height: 70px; width: auto; overflow: visible; }
+  .court-only .topbar .main-nav a { font-size: 14px; height: 70px; white-space: nowrap; }
+  .court-only .topbar .profile-button { position: static; right: auto; top: auto; flex: none; }
+  .court-lobby-intro { font-size: 14px; margin: 10px 0 24px; }
+  .court-case-question { font-size: 12px; line-height: 1.85; margin-top: 6px; }
+  .court-only .league-panel .match-row { min-height: 165px; }
+}
+
+/* Court status filter: one compact control, with a consistent in-page popover. */
+.court-state-filter { position: relative; flex: none; z-index: 20; }
+.court-state-trigger { display: inline-flex; align-items: center; gap: 9px; min-width: 142px; min-height: 44px; padding: 10px 13px; border: 1px solid #e3e6ec; border-radius: 10px; background: #fff; color: #374353; font-size: 14px; font-weight: 550; line-height: 1.5; text-align: left; box-shadow: 0 2px 5px #23314704; transition: border-color .16s, box-shadow .16s, background .16s; }
+.court-state-trigger > svg:first-child { color: var(--red); flex: none; }
+.court-state-trigger > span { flex: 1; white-space: nowrap; }
+.court-state-trigger:hover { border-color: #d7bcc0; background: #fffafa; }
+.court-state-trigger[aria-expanded="true"] { border-color: #dfb6bc; box-shadow: 0 0 0 3px #cf000008; }
+.court-state-caret { color: #8b95a2; flex: none; transition: transform .16s; }
+.court-state-trigger[aria-expanded="true"] .court-state-caret { transform: rotate(180deg); color: var(--red); }
+.court-state-trigger:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
+.court-state-menu { position: absolute; top: calc(100% + 8px); right: 0; min-width: 192px; padding: 6px; border: 1px solid #e6e9ee; border-radius: 12px; background: #fff; box-shadow: 0 12px 36px #26344819, 0 3px 8px #26344808; animation: court-filter-reveal .14s ease-out both; transform-origin: top right; }
+.court-state-menu:focus { outline: none; }
+.court-state-option { display: flex; width: 100%; align-items: center; gap: 11px; min-height: 42px; padding: 10px; border-radius: 7px; color: #526071; font-size: 14px; font-weight: 450; line-height: 1.5; text-align: left; transition: background .12s, color .12s; }
+.court-state-option > svg { flex: none; color: #8e99a7; }
+.court-state-option > span { flex: 1; white-space: nowrap; }
+.court-state-option.is-active { background: #f5f7f9; box-shadow: inset 0 0 0 1px #e9edf2; }
+.court-state-option[aria-selected="true"] { background: #fff0f0; color: #ba1825; font-weight: 600; }
+.court-state-option[aria-selected="true"] > svg { color: #ba1825; }
+.court-state-option[aria-selected="true"].is-active { box-shadow: inset 0 0 0 1px #f4d8dc; }
+.court-state-option + .court-state-option { margin-top: 2px; }
+@keyframes court-filter-reveal { from { opacity: 0; transform: translateY(-4px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media(max-width:700px) {
+  .court-state-trigger { min-width: 130px; min-height: 42px; padding: 9px 11px; font-size: 13px; gap: 8px; }
+  .court-state-menu { min-width: 184px; max-width: calc(100vw - 32px); }
+  .court-state-option { min-height: 44px; font-size: 13px; }
+}
+@media(prefers-reduced-motion:reduce) { .court-state-menu { animation: none; } .court-state-trigger, .court-state-caret, .court-state-option { transition: none; } }

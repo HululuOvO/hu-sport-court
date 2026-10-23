@@ -21,8 +21,11 @@ import { courtCrests } from "./crest-assets";
 import { leagues, standingsSnapshot } from "./standings-data";
 import { Community, News, QualificationLegend, rankZone } from "./ContentPages";
 import { forumTopics, makeForumComments } from "./content-data";
+import { COURT_ONLY, parseShowcaseRoute } from "./showcase-config";
+import { CourtStateFilter } from "./CourtStateFilter";
+const ScoreLink = COURT_ONLY ? "div" : "a";
 const sides = { red: "正方", blue: "反方", neutral: "不站队", hot: "热评" };
-const parseRoute = () => location.hash.slice(1).split("/").filter(Boolean);
+const parseRoute = () => parseShowcaseRoute(location.hash, matches);
 const go = (path = "") => (location.hash = "/" + path);
 function HUWordmark() {
   return <svg className="hu-wordmark" viewBox="0 0 88 64" aria-hidden="true" focusable="false">
@@ -148,7 +151,7 @@ export function App() {
     [intro, setIntro] = useState(null),
     [toast, setToast] = useState("");
   const [comments, setComments] = useState(() =>
-      Object.fromEntries([...matches.map((m) => [m.id, makeComments(m)]), ...forumTopics.filter(t => !t.matchId).map(t => [t.id, makeForumComments(t)])]),
+      Object.fromEntries([...matches.map((m) => [m.id, makeComments(m)]), ...(!COURT_ONLY ? forumTopics.filter(t => !t.matchId).map(t => [t.id, makeForumComments(t)]) : [])]),
     ),
     [votes, setVotes] = useState({}),
     [liked, setLiked] = useState({});
@@ -265,7 +268,7 @@ export function App() {
     <>
       <div className="site-atmosphere" aria-hidden="true" />
       {home && <div className="stadium-background" aria-hidden="true" />}
-      <div className={"site-shell " + (route[0] === "court" ? "court-shell" : "")} inert={intro ? true : undefined}>
+      <div className={"site-shell " + (COURT_ONLY ? "court-only " : "") + (route[0] === "court" ? "court-shell" : "")} inert={intro ? true : undefined}>
         <header className="topbar glass">
           <a className="brand" href="#/" aria-label="HU 首页">
             <HUWordmark />
@@ -275,8 +278,9 @@ export function App() {
               className={!route[0] || ["match", "court"].includes(route[0]) ? "selected" : ""}
               href="#/"
             >
-              比赛
+              {COURT_ONLY ? "赛后小法庭" : "比赛"}
             </a>
+            {!COURT_ONLY && <>
             <a className={["standings", "scorers"].includes(route[0]) ? "selected" : ""} href="#/standings">积分榜</a>
             <a className={route[0] === "community" ? "selected" : ""} href="#/community">社区</a>
             <a className={route[0] === "news" ? "selected" : ""} href="#/news">资讯</a>
@@ -286,6 +290,7 @@ export function App() {
             >
               我的关注
             </a>
+            </>}
           </nav>
           <button
             className="profile-button icon-button"
@@ -299,13 +304,13 @@ export function App() {
           </button>
         </header>
         <main ref={mainRef} tabIndex={-1}>
-          {route[0] === "community" ? (
+          {!COURT_ONLY && route[0] === "community" ? (
             <Community key={route.slice(1).join("/")} segments={route.slice(1)} customTopics={customTopics} addTopic={addTopic} comments={comments} liked={liked} like={like} addComment={addComment} addReply={addReply} enter={enter} Thread={Thread} Crest={Crest} />
-          ) : route[0] === "news" ? (
+          ) : !COURT_ONLY && route[0] === "news" ? (
             <News articleId={route[1]} Crest={Crest} />
-          ) : route[0] === "scorers" ? (
+          ) : !COURT_ONLY && route[0] === "scorers" ? (
             <Standings leagueId={route[1]} />
-          ) : route[0] === "standings" ? (
+          ) : !COURT_ONLY && route[0] === "standings" ? (
             <Standings leagueId={route[1]} />
           ) : home ? (
             <Home
@@ -320,7 +325,7 @@ export function App() {
               <h1>这场比赛暂未收录。</h1>
               <a href="#/">返回比赛</a>
             </section>
-          ) : route[0] === "match" ? (
+          ) : !COURT_ONLY && route[0] === "match" ? (
             <MatchDetail
               match={match}
               now={now}
@@ -350,7 +355,7 @@ export function App() {
         </main>
         <footer>
           <span className="footer-brand">HU</span>
-          <span>{["standings", "scorers"].includes(route[0]) ? "积分榜 · ESPN 数据快照" : ["community", "news"].includes(route[0]) ? "中文内容 · 初版体验" : "示例比赛 · 前端互动体验"}</span>
+          <span>{COURT_ONLY ? "赛后小法庭 · 互动作品展示" : ["standings", "scorers"].includes(route[0]) ? "积分榜 · ESPN 数据快照" : ["community", "news"].includes(route[0]) ? "中文内容 · 初版体验" : "示例比赛 · 前端互动体验"}</span>
           <span>发言和投票仅保留在本次体验</span>
         </footer>
       </div>
@@ -481,7 +486,7 @@ function Standings({ leagueId }) {
   </section>;
 }
 function Home({ followed, following, now, enter, follow }) {
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(COURT_ONLY ? "open" : "all");
   const visible = matches.filter(
     (m) =>
       (!following || followed.includes(m.id)) &&
@@ -490,29 +495,30 @@ function Home({ followed, following, now, enter, follow }) {
   return (
     <>
       <section className="home-hero">
-        <p className="eyebrow">2026年10月11日 · 星期日 · 示例赛程</p>
+        <p className="eyebrow">{COURT_ONLY ? "赛后小法庭" : "2026年10月11日 · 星期日 · 示例赛程"}</p>
         <h1>
           {following ? "把喜欢的比赛，留在这里。" : "比赛结束，聊个明白。"}
         </h1>
+        {COURT_ONLY && <p className="court-lobby-intro">说说你的观点，或投上一票。</p>}
         <div className="hero-controls">
-          <span>{following ? "我的关注" : "今日比赛"}</span>
-          <label className="filter-select">
+          <span>{COURT_ONLY ? "选择一场，开始讨论" : following ? "我的关注" : "今日比赛"}</span>
+          {COURT_ONLY ? <CourtStateFilter value={filter} onChange={setFilter} /> : <label className="filter-select">
             <select
               aria-label="筛选比赛状态"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >
-              <option value="all">全部比赛</option>
+              <option value="all">{COURT_ONLY ? "全部法庭" : "全部比赛"}</option>
               <option value="open">开庭中</option>
               <option value="closed">已结案</option>
-              <option value="scheduled">未开赛</option>
-              <option value="live">进行中</option>
+              <option value="scheduled">{COURT_ONLY ? "预约中" : "未开赛"}</option>
+              <option value="live">{COURT_ONLY ? "完赛后开庭" : "进行中"}</option>
             </select>
             <CaretDown size={17} />
-          </label>
+          </label>}
         </div>
       </section>
-      {!following && <nav className="competition-strip" aria-label="赛事积分榜">
+      {!COURT_ONLY && !following && <nav className="competition-strip" aria-label="赛事积分榜">
         {leagues.map((league) => <a key={league.id} href={"#/standings/" + league.id}>
           <LeagueLogo league={league} /><span>{league.name}</span><ArrowUpRight size={14} />
         </a>)}
@@ -532,7 +538,7 @@ function Home({ followed, following, now, enter, follow }) {
                 <LeagueLogo league={leagues.find((l) => l.name === league)} />
                 {league}
                 <span>{group.length}场</span>
-                <a className="league-table-link" href={"#/standings/" + leagues.find((l) => l.name === league).id}>积分榜 <ArrowUpRight size={14} /></a>
+                {!COURT_ONLY && <a className="league-table-link" href={"#/standings/" + leagues.find((l) => l.name === league).id}>积分榜 <ArrowUpRight size={14} /></a>}
               </h2>
               {group.map((m) => (
                 <article className="match-row" key={m.id}>
@@ -546,14 +552,14 @@ function Home({ followed, following, now, enter, follow }) {
                     </span>
                     <Badge match={m} now={now} />
                   </div>
-                  <a
+                  <ScoreLink
                     className="match-score-link"
-                    href={"#/match/" + m.id}
+                    href={COURT_ONLY ? undefined : "#/match/" + m.id}
                     aria-label={
                       teams[m.home].name +
                       "对" +
                       teams[m.away].name +
-                      "，查看比分和赛况"
+                      (COURT_ONLY ? "，示例比分" : "，查看比分和赛况")
                     }
                   >
                     <div className="row-team home">
@@ -562,13 +568,14 @@ function Home({ followed, following, now, enter, follow }) {
                     </div>
                     <div className="score-group">
                       <Score match={m} />
-                      <span className="score-hint">查看赛况</span>
+                      {!COURT_ONLY && <span className="score-hint">查看赛况</span>}
                     </div>
                     <div className="row-team away">
                       <Crest team={teams[m.away]} />
                       <span>{teams[m.away].name}</span>
                     </div>
-                  </a>
+                    {COURT_ONLY && <span className="court-case-question">{m.topic || "终场之后，再来聊聊。"}</span>}
+                  </ScoreLink>
                   <div className="row-action">
                     {m.state === "scheduled" ? (
                       <button
@@ -612,14 +619,14 @@ function Home({ followed, following, now, enter, follow }) {
       ) : (
         <section className="panel empty">
           <Bell size={40} weight="light" />
-          <h2>{following ? "还没有关注的比赛" : "暂无符合条件的比赛"}</h2>
+          <h2>{following ? "还没有关注的比赛" : COURT_ONLY ? "暂无符合条件的法庭" : "暂无符合条件的比赛"}</h2>
           <p>
             {following
               ? "预约一场比赛，就会出现在这里。"
               : "换个筛选条件看看。"}
           </p>
           <a className="button primary" href="#/">
-            去看比赛 <ArrowRight size={18} />
+            {COURT_ONLY ? "返回法庭大厅" : "去看比赛"} <ArrowRight size={18} />
           </a>
         </section>
       )}
@@ -636,10 +643,10 @@ function MatchHeader({ match, now, court = false }) {
         <Badge match={match} now={now} />
       </div>
       <div className="big-scoreboard">
-        <a href={"#/match/" + match.id} className="big-team">
+        <ScoreLink href={COURT_ONLY ? undefined : "#/match/" + match.id} className="big-team">
           <Crest team={teams[match.home]} large court={court} />
           <h2>{teams[match.home].name}</h2>
-        </a>
+        </ScoreLink>
         <div className="big-score-center">
           <span>
             {match.state === "finished"
@@ -649,7 +656,7 @@ function MatchHeader({ match, now, court = false }) {
                 : "未开赛"}
           </span>
           <Score match={match} />
-          {court ? (
+          {COURT_ONLY ? <small className="court-score-note">示例比分</small> : court ? (
             <a href={"#/match/" + match.id}>
               查看赛况 <ArrowUpRight size={15} />
             </a>
@@ -657,10 +664,10 @@ function MatchHeader({ match, now, court = false }) {
             <small>阵容与进球均为演示数据</small>
           )}
         </div>
-        <a href={"#/match/" + match.id} className="big-team">
+        <ScoreLink href={COURT_ONLY ? undefined : "#/match/" + match.id} className="big-team">
           <Crest team={teams[match.away]} large court={court} />
           <h2>{teams[match.away].name}</h2>
-        </a>
+        </ScoreLink>
       </div>
     </section>
   );
@@ -849,8 +856,8 @@ function Court({
       <section className="panel empty">
         <h1>这场还没开庭。</h1>
         <p>比赛结束后，法庭才会开放。</p>
-        <a className="button primary" href={"#/match/" + match.id}>
-          查看赛况
+        <a className="button primary" href={COURT_ONLY ? "#/" : "#/match/" + match.id}>
+          {COURT_ONLY ? "返回法庭大厅" : "查看赛况"}
         </a>
       </section>
     );
@@ -861,7 +868,7 @@ function Court({
       <div className="court-banner">
       <a className="back-link" href="#/">
         <ArrowLeft size={18} />
-        返回比赛
+        {COURT_ONLY ? "返回法庭大厅" : "返回比赛"}
       </a>
       <Scales className="court-watermark" weight="light" aria-hidden="true" />
       <div className="court-title">
@@ -962,11 +969,11 @@ function OtherCourts({ match, now, enter }) {
         const state = courtState(m, now), ready = state === "open" || state === "closed";
         return <article className="other-court-row" key={m.id}>
           <div className="other-court-meta"><span>{m.league}</span><Badge match={m} now={now} /></div>
-          <a className="other-court-score" href={"#/match/" + m.id} aria-label={teams[m.home].name + "对" + teams[m.away].name + "，查看赛况"}>
+          <ScoreLink className="other-court-score" href={COURT_ONLY ? undefined : "#/match/" + m.id} aria-label={teams[m.home].name + "对" + teams[m.away].name + (COURT_ONLY ? "，示例比分" : "，查看赛况")}>
             <span className="other-court-team"><Crest team={teams[m.home]} /><span>{teams[m.home].name}</span></span>
             <Score match={m} />
             <span className="other-court-team"><Crest team={teams[m.away]} /><span>{teams[m.away].name}</span></span>
-          </a>
+          </ScoreLink>
           <div className="other-court-bottom"><p>{m.topic || "比赛结束后，法庭开放。"}</p><button className={"button " + (ready ? "primary" : "quiet")} disabled={!ready} onClick={() => enter(m)} aria-label={(state === "open" ? "进入" : "查看") + teams[m.home].name + "对" + teams[m.away].name + "的法庭"}>{state === "open" ? "进入法庭" : state === "closed" ? "查看结果" : "完赛后开放"}<ArrowRight size={15} /></button></div>
         </article>;
       })}
