@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -164,9 +165,17 @@ export function App() {
     modalRef = useRef(null),
     mainRef = useRef(null);
   useEffect(() => {
+    let wasIntroduction = COURT_ONLY && !parseRoute()[0];
     const change = () => {
-      setRoute(parseRoute());
-      window.scrollTo(0, 0);
+      const nextRoute = parseRoute();
+      const isIntroduction = COURT_ONLY && !nextRoute[0];
+      const boundaryChanged = wasIntroduction !== isIntroduction;
+      wasIntroduction = isIntroduction;
+      const update = () => { setRoute(nextRoute); window.scrollTo(0, 0); };
+      if (boundaryChanged && document.startViewTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const transition = document.startViewTransition(() => flushSync(update));
+        transition.ready.catch(() => {});
+      } else update();
     };
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
