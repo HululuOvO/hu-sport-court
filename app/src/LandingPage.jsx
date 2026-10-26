@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ArrowDown, ArrowUpRight, Check, Scales, ChatCircle, Heart, SoccerBall } from "@phosphor-icons/react";
 import { matches, teams } from "./data";
 import "./landing.css";
+import stadium from "./assets/stadium.webp";
 
 const sample = matches.find(match => match.id === "m1");
 const scrollToSection = id => document.getElementById(id)?.scrollIntoView({
@@ -25,8 +26,56 @@ function PitchLines() {
   </svg>;
 }
 
+function useIntroMotion(rootRef) {
+  useEffect(() => {
+    const root = rootRef.current;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (!root || media.matches || !window.IntersectionObserver) return;
+    const animations = [];
+    const observer = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting || media.matches) continue;
+        const el = entry.target;
+        el.dataset.entered = "true";
+        if (typeof el.animate === "function") {
+          const quote = el.classList.contains("intro-quote");
+          animations.push(el.animate([
+            { opacity: .45, translate: quote ? "20px 0" : "0 22px", filter: "blur(3px)" },
+            { opacity: 1, translate: "0 0", filter: "blur(0px)" },
+          ], { duration: quote ? 900 : 700, easing: "cubic-bezier(.22,1,.36,1)", delay: Number(el.dataset.motionDelay || 0) }));
+        }
+        observer.unobserve(el);
+      }
+    }, { threshold: .16, rootMargin: "0px 0px -25px 0px" });
+    root.querySelectorAll(".intro-idea-copy,.intro-quote,.intro-section-heading,.intro-ways article,.intro-opinion-demo,.intro-journey li,.intro-next>div,.intro-experience .intro-container").forEach(el => observer.observe(el));
+    const stage = root.querySelector(".intro-product");
+    let frame;
+    const reset = () => { stage?.style.setProperty("--pointer-x", "0deg"); stage?.style.setProperty("--pointer-y", "0deg"); };
+    const move = event => {
+      if (event.pointerType !== "mouse") return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const bounds = stage.getBoundingClientRect();
+        stage.style.setProperty("--pointer-x", `${((event.clientY - bounds.top) / bounds.height - .5) * -5}deg`);
+        stage.style.setProperty("--pointer-y", `${((event.clientX - bounds.left) / bounds.width - .5) * 6}deg`);
+      });
+    };
+    stage?.addEventListener("pointermove", move);
+    stage?.addEventListener("pointerleave", reset);
+    const reduce = () => { if (media.matches) { animations.forEach(animation => animation.cancel()); reset(); } };
+    media.addEventListener?.("change", reduce);
+    return () => { observer.disconnect(); animations.forEach(animation => animation.cancel()); cancelAnimationFrame(frame); stage?.removeEventListener("pointermove", move); stage?.removeEventListener("pointerleave", reset); media.removeEventListener?.("change", reduce); };
+  }, [rootRef]);
+}
+
+function FixtureRibbon() {
+  const fixtures = [matches.find(m => m.id === "m1"), ...["西甲", "德甲", "欧冠"].map(league => matches.find(m => m.league === league && m.score))].filter(Boolean);
+  return <section className="intro-fixtures intro-container" aria-label="可体验的示例比赛"><div className="intro-fixture-label"><SoccerBall size={19} /><span>从你关心的<br /><strong>一场球开始。</strong></span></div><div className="intro-fixture-list">{fixtures.map(match => <a key={match.id} href="#/courts"><span>{match.league} · 示例</span><div><TeamMark name={match.home} /><b>{match.score[0]} <small>:</small> {match.score[1]}</b><TeamMark name={match.away} /></div><p>{teams[match.home].name} <span>vs</span> {teams[match.away].name}</p></a>)}</div></section>;
+}
+
 function ProductPreview() {
   return <figure className="intro-product" aria-label="小法庭界面预览，示例比赛">
+    <div className="intro-stadium-frame"><img className="intro-stadium-photo" src={stadium} alt="" fetchPriority="high" /><div className="intro-stadium-caption"><span>赛后小法庭</span><p>终场之后，<br />这里是球迷的主场。</p></div></div>
     <PitchLines />
     <div className="intro-match-slip">
       <div><span className="intro-live-dot" />终场之后</div>
@@ -61,12 +110,15 @@ function OpinionPreview() {
     <p className="intro-demo-question">{sample.topic}</p>
     <div className="intro-demo-options">{options.map((option, i) => <button key={option.title} className={`${option.className}${choice === i ? " chosen" : ""}`} aria-pressed={choice === i} onClick={() => setChoice(choice === i ? null : i)}><span>{option.title}</span><strong>{option.text}</strong><span className="intro-option-check">{choice === i && <Check size={16} weight="bold" />}</span></button>)}</div>
     <div className="intro-demo-meter" aria-label={`示例支持率：正方 ${percent}%，反方 ${100 - percent}%`}><span style={{ width: percent + "%" }}>正方 {percent}%</span><span style={{ width: 100 - percent + "%" }}>反方 {100 - percent}%</span></div>
-    <p className="intro-demo-status" role="status">{choice === null ? "点选一个观点，感受一下。" : `你选择了${options[choice].title}，也可以随时改变主意。`}</p>
+    <div className="intro-demo-counts"><span>正方 <b key={red}>{red}</b> 票</span><span>反方 <b key={blue}>{blue}</b> 票</span><span>不站队 <b key={choice === 2 ? 1 : 0}>{sample.votes[2] + (choice === 2 ? 1 : 0)}</b> 票</span></div>
+    <p key={choice} className={"intro-demo-status" + (choice !== null ? " voted" : "")} role="status">{choice === null ? "点选一个观点，感受一下。" : <><Check size={14} />你的一票已加入{options[choice].title}，可以随时改选。</>}</p>
   </div>;
 }
 
 export function LandingPage({ Wordmark }) {
-  return <div className="hu-intro">
+  const rootRef = useRef(null);
+  useIntroMotion(rootRef);
+  return <div className="hu-intro" ref={rootRef}>
     <a className="intro-skip" href="#/courts">跳过介绍，进入小法庭</a>
     <header className="intro-nav intro-container">
       <a href="#/" className="intro-brand" aria-label="HU 项目介绍"><Wordmark /></a>
@@ -75,12 +127,16 @@ export function LandingPage({ Wordmark }) {
     </header>
     <main>
       <section className="intro-hero intro-container" aria-labelledby="intro-title">
+        <div className="intro-hero-copy">
         <p className="intro-project-label"><SoccerBall size={18} />HU Sport Court · 足球互动作品</p>
-        <h1 id="intro-title">终场哨响，<br />讨论才刚<span>开场。</span></h1>
+        <h1 id="intro-title"><span className="intro-title-line">终场哨响，</span><span className="intro-title-line">换你<em>上场。</em></span></h1>
         <p className="intro-hero-description">把一场球的意难平，带进赛后小法庭。<br />亮出观点，听听另一边，或投上你的一票。</p>
         <div className="intro-hero-actions"><button className="intro-pill" onClick={() => scrollToSection("intro-idea")}>了解这个想法 <ArrowDown size={18} /></button><button className="intro-pill intro-pill-outline" onClick={() => scrollToSection("intro-play")}>看看怎么玩 <ArrowRight size={18} /></button></div>
+        <div className="intro-participation"><span>辩论</span><i /><span>投票</span><i /><span>不站队</span><Scales size={21} /></div>
+        </div>
         <ProductPreview />
       </section>
+      <FixtureRibbon />
 
       <section id="intro-idea" className="intro-idea intro-container" aria-labelledby="intro-idea-title">
         <div className="intro-idea-copy"><h2 id="intro-idea-title">比分有终点，<br />球迷的讨论没有。</h2><p>一场平局，有人觉得该批，有人觉得情有可原。赛后评论很热闹，但不同观点往往混在一起。</p><p>我想做一个小一点、清楚一点的讨论空间：一场比赛，一个议题。让球迷知道双方在争什么，也能找到自己想参与的方式。</p><span className="intro-author">胡睿哲 Roy Hu <span>·</span> 从球迷视角出发的个人项目</span></div>

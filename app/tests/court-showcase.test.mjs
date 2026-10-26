@@ -22,7 +22,7 @@ test('rendered lobby and every court retain the core flow without peripheral nav
  const dir=await mkdtemp(new URL('../.showcase-qa-',import.meta.url).pathname);
  const previousWindow=globalThis.window,previousLocation=globalThis.location;
  try{
-  await build({entryPoints:[new URL('../src/App.jsx',import.meta.url).pathname],outfile:dir+'/App.mjs',bundle:true,platform:'node',format:'esm',jsx:'automatic',external:['react','react-dom','@phosphor-icons/react'],logLevel:'silent'});
+  await build({entryPoints:[new URL('../src/App.jsx',import.meta.url).pathname],outfile:dir+'/App.mjs',bundle:true,platform:'node',format:'esm',jsx:'automatic',loader:{'.webp':'dataurl'},external:['react','react-dom','@phosphor-icons/react'],logLevel:'silent'});
   const {App}=await import(dir+'/App.mjs');
   globalThis.window={matchMedia:()=>({matches:true})};
   function render(hash){globalThis.location={hash};return renderToStaticMarkup(React.createElement(App));}
