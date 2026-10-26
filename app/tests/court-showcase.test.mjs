@@ -29,6 +29,7 @@ test('rendered lobby and every court retain the core flow without peripheral nav
   const noPeripheralLinks=html=>assert.doesNotMatch(html,/href="#\/(?:community|news|standings|scorers|following|match)(?:\/|"|\?)/);
   const introduction=render('#/');noPeripheralLinks(introduction);
   assert.match(introduction,/终场哨响/);assert.match(introduction,/进入小法庭 · 立即体验/);
+  assert.equal((introduction.match(/class="hu-window-header"/g)||[]).length,1,'the opening and walkthrough share one court panel');
   assert.match(introduction,/href="#\/courts"/);assert.match(introduction,/AI 观点摘要尚未接入/);
   assert.doesNotMatch(introduction,/选择一场，开始讨论/);
   const home=render('#/courts');noPeripheralLinks(home);

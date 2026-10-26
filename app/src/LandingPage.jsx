@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUp, ArrowDown, ArrowUpRight, Check, Scales, ChatCircle
 import { teams } from "./data";
 import stadium from "./assets/stadium.webp";
 import "./landing.css";
+import { sharedPanelFrame } from "./shared-panel-motion";
 const chapters = ["hu-introduction", "hu-how-it-works", "hu-try-it"];
 const features = [
   { name: "辩论席", title: "有话，直接说。", text: "看清双方观点，再发言、点赞或回复。" },
@@ -15,9 +16,9 @@ function Matchup() { return <div className="hu-matchup"><span><Team name="united
 function Debate({ hero = false }) { return <div className="hu-debate"><div className="hu-opposition"><div><span>正方</span><h3>表现不到位，<br />就该接受批评。</h3></div><i>VS</i><div><span>反方</span><h3>别只看比分，<br />也该看看过程。</h3></div></div><div className="hu-meter" aria-label="示例支持率：正方57%，反方43%"><span>57%</span><span>43%</span></div>{!hero && <div className="hu-comment"><span className="hu-avatar">球</span><div><strong>弗格森的口香糖</strong><p>结果能接受，踢法值得讨论。</p><span><Heart size={16} /> 赞同 <ChatCircle size={16} /> 回复</span></div></div>}</div>; }
 function Vote() { const [choice,setChoice] = useState(null); return <div className="hu-vote"><p>你更认同哪一种？</p>{["表现不够好，该批评", "看过程，平局也有价值", "不站队，我有其他看法"].map((label,i) => <button key={label} aria-pressed={choice === i} className={"hu-vote-option side-" + i + (choice === i ? " chosen" : "")} onClick={() => setChoice(i)}><span>{["正方","反方","中立"][i]}</span><strong>{label}</strong><i>{choice === i && <Check size={17} weight="bold" />}</i></button>)}<p key={choice} className="hu-receipt" role="status">{choice === null ? "点选一次，试试投票。" : <><Check size={16} /> 你的一票已加入，可随时改选。</>}</p></div>; }
 function Neutral() { const [liked,setLiked] = useState(false); return <div className="hu-neutral"><span>不站队 · 说句公道话</span><div className="hu-comment"><span className="hu-avatar">看</span><div><strong>看球不只看比分</strong><p>批评可以，也别忽略对手。聊清楚比赛，比争输赢更有意思。</p><button className={"hu-like" + (liked ? " liked" : "")} aria-pressed={liked} onClick={() => setLiked(!liked)}><Heart size={19} weight={liked ? "fill" : "regular"} /> {liked ? "已赞同 · 25" : "赞同 · 24"}</button></div></div></div>; }
-function CourtWindow({ mode=0, hero=false }) { return <div className={"hu-window" + (hero ? " hero-window" : "")}><div className="hu-window-header"><span><Scales size={21} /> 赛后小法庭</span><small><i /> 示例 · 开庭中</small></div><Matchup /><h2 className="hu-case-title">这场平局，<br />曼联该不该被批评？</h2>{hero ? <><Debate hero /><div className="hu-window-foot"><span>辩论席</span><span>陪审席</span><span>庭审记录</span></div></> : <><div className="hu-preview-tabs" aria-hidden="true">{features.map((f,i)=><span key={f.name} className={mode===i ? "active" : ""}>{f.name}</span>)}<i style={{transform:`translateX(${mode*100}%)`}} /></div><div className="hu-preview-panels">{[<Debate />,<Vote />,<Neutral />].map((panel,i)=><div key={i} className={"hu-preview-panel"+(mode===i ? " active" : "")} aria-hidden={mode!==i} inert={mode!==i ? true : undefined}>{panel}</div>)}</div></>}</div>; }
+function CourtWindow({ mode=0, hero=false }) { return <div className={"hu-window" + (hero ? " hero-window" : "")}><div className="hu-window-header"><span><Scales size={21} /> 赛后小法庭</span><small><i /> 示例 · 开庭中</small></div><Matchup /><h2 className="hu-case-title"><span className="hu-case-context">这场平局，</span><span>曼联该不该被批评？</span></h2>{hero ? <><Debate hero /><div className="hu-window-foot"><span>辩论席</span><span>陪审席</span><span>庭审记录</span></div></> : <><div className="hu-preview-tabs" aria-hidden="true">{features.map((f,i)=><span key={f.name} className={mode===i ? "active" : ""}>{f.name}</span>)}<i style={{transform:`translateX(${mode*100}%)`}} /></div><div className="hu-preview-panels">{[<Debate />,<Vote />,<Neutral />].map((panel,i)=><div key={i} className={"hu-preview-panel"+(mode===i ? " active" : "")} aria-hidden={mode!==i} inert={mode!==i ? true : undefined}>{panel}</div>)}</div></>}</div>; }
 export function LandingPage({ Wordmark }) {
-  const root=useRef(null), [chapter,setChapter]=useState(0), [mode,setMode]=useState(0);
+  const root=useRef(null), shared=useRef(null), [chapter,setChapter]=useState(0), [mode,setMode]=useState(0), [docked,setDocked]=useState(false);
   useEffect(()=>{
     const node=root.current;
     if(!node || !window.IntersectionObserver)return;
@@ -30,10 +31,59 @@ export function LandingPage({ Wordmark }) {
     window.addEventListener("scroll",update,{passive:true});update();
     return()=>{observer.disconnect();modes.disconnect();cancelAnimationFrame(frame);window.removeEventListener("scroll",update);};
   },[]);
+  useEffect(() => {
+    const node = root.current, panel = shared.current;
+    if (!node || !panel) return;
+    const heroSlot = node.querySelector(".hu-hero-dock");
+    const storySlot = node.querySelector(".hu-story-dock");
+    const story = node.querySelector(".hu-story");
+    const controls = node.querySelector(".hu-mode-control");
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let geometry, frame, currentDocked = false;
+    const measure = () => {
+      const hero = heroSlot.getBoundingClientRect();
+      const target = storySlot.getBoundingClientRect();
+      const header = parseFloat(getComputedStyle(node).getPropertyValue("--hu-header")) || 82;
+      const gap = parseFloat(getComputedStyle(controls).marginBottom) || 0;
+      const controlHeight = controls.offsetHeight + gap;
+      panel.style.width = target.width + "px";
+      geometry = { heroTop: hero.top + scrollY, heroLeft: hero.left, heroWidth: hero.width,
+        targetTop: story.getBoundingClientRect().top + scrollY + controlHeight,
+        targetLeft: target.left, targetWidth: target.width,
+        landingY: header + (innerWidth <= 700 ? 8 : 40) + controlHeight,
+        viewportHeight: innerHeight };
+      storySlot.style.height = panel.offsetHeight + "px";
+      node.style.setProperty("--preview-stack-height", (controlHeight + panel.offsetHeight + 12) + "px");
+    };
+    const draw = () => {
+      if (!geometry) return;
+      const dock = storySlot.getBoundingClientRect();
+      const state = sharedPanelFrame({ ...geometry, scroll: scrollY, dockTop: dock.top, reduced: media.matches });
+      panel.style.width = geometry.targetWidth + "px";
+      panel.style.transform = `translate3d(${state.x}px,${state.y}px,0) scale(${state.scale})`;
+      panel.style.setProperty("--handoff", state.progress);
+      node.style.setProperty("--handoff", state.progress);
+      panel.dataset.phase = state.phase;
+      panel.classList.add("positioned");
+      panel.style.visibility = state.y + panel.offsetHeight * state.scale < -10 || state.y > innerHeight + 20 ? "hidden" : "visible";
+      const ready = state.phase === "story";
+      if (ready !== currentDocked) { currentDocked = ready; setDocked(ready); }
+    };
+    const update = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(draw); };
+    const resize = () => { measure(); update(); };
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(resize) : null;
+    observer?.observe(heroSlot); observer?.observe(story);
+    measure(); draw();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", resize);
+    media.addEventListener?.("change", resize);
+    document.fonts?.ready.then(() => { if (node.isConnected) resize(); });
+    return () => { cancelAnimationFrame(frame); observer?.disconnect(); window.removeEventListener("scroll", update); window.removeEventListener("resize", resize); media.removeEventListener?.("change", resize); };
+  }, []);
   const selectMode=i=>{setMode(i);moveTo("hu-feature-"+i);};
   return <div className="hu-intro" ref={root}><a className="hu-skip" href="#/courts">跳过介绍，进入小法庭</a><header className="hu-intro-nav"><div className="hu-wrap"><a className="hu-intro-brand" href="#/" aria-label="HU 项目介绍"><Wordmark /></a><nav aria-label="项目介绍导航"><button className={chapter===0 ? "active" : ""} onClick={()=>moveTo(chapters[0])}>认识法庭</button><button className={chapter===1 ? "active" : ""} onClick={()=>moveTo(chapters[1])}>怎么玩</button></nav><a className="hu-nav-experience" href="#/courts">进入体验 <ArrowUpRight size={18} /></a></div><div className="hu-reading-progress" /></header><main>
-    <section className="hu-opening hu-wrap" id={chapters[0]} data-chapter="0" aria-labelledby="hu-title"><div className="hu-opening-copy"><p className="hu-project-name"><SoccerBall size={20} /> HU Sport Court</p><h1 id="hu-title"><span>终场哨响，</span><span>轮到你<em>上场。</em></span></h1><p className="hu-opening-description">一个让球迷辩观点、投一票的<br />赛后小法庭。</p><button className="hu-action" onClick={()=>moveTo(chapters[1])}>看看怎么玩 <ArrowDown size={20} /></button></div><div className="hu-opening-scene"><div className="hu-stadium"><img src={stadium} alt="足球场与环绕球场的看台" fetchPriority="high" /><span className="hu-stadium-minute">90′</span><div className="hu-scene-label">终场之后，讨论继续。<Scales size={24} /></div></div><CourtWindow hero /></div><button className="hu-scroll-cue" onClick={()=>moveTo(chapters[1])} aria-label="向下查看玩法"><ArrowDown size={22} /></button></section>
-    <section className="hu-how" id={chapters[1]} data-chapter="1" aria-labelledby="hu-how-title"><div className="hu-wrap"><div className="hu-how-heading"><h2 id="hu-how-title">看清观点，<em>再开口。</em></h2><p>参与的方式，由你决定。</p></div><div className="hu-story"><div className="hu-story-stage"><div className="hu-mode-control" aria-label="预览参与方式">{features.map((f,i)=><button key={f.name} aria-pressed={mode===i} className={mode===i ? "active" : ""} onClick={()=>selectMode(i)}>{f.name}</button>)}<span style={{transform:`translateX(${mode*100}%)`}} /></div><CourtWindow mode={mode} /></div><div className="hu-story-steps">{features.map((f,i)=><article key={f.name} id={"hu-feature-"+i} data-mode={i} className={mode===i ? "active" : ""}><button className="hu-story-copy" onClick={()=>selectMode(i)} aria-label={"预览"+f.name}><span className="hu-feature-name"><span>{String(i+1).padStart(2,"0")}</span>{f.name}</span><h3>{f.title}</h3><p>{f.text}</p></button></article>)}</div></div></div></section>
+    <section className="hu-opening hu-wrap" id={chapters[0]} data-chapter="0" aria-labelledby="hu-title"><div className="hu-opening-copy"><p className="hu-project-name"><SoccerBall size={20} /> HU Sport Court</p><h1 id="hu-title"><span>终场哨响，</span><span>轮到你<em>上场。</em></span></h1><p className="hu-opening-description">一个让球迷辩观点、投一票的<br />赛后小法庭。</p><button className="hu-action" onClick={()=>moveTo(chapters[1])}>看看怎么玩 <ArrowDown size={20} /></button></div><div className="hu-opening-scene"><div className="hu-stadium"><img src={stadium} alt="足球场与环绕球场的看台" fetchPriority="high" /><span className="hu-stadium-minute">90′</span><div className="hu-scene-label">终场之后，讨论继续。<Scales size={24} /></div></div><div className="hu-hero-dock" aria-hidden="true" /><div className="hu-shared-court" ref={shared} inert={!docked ? true : undefined} aria-label="随滚动进入玩法介绍的比赛面板"><CourtWindow mode={mode} /></div></div><button className="hu-scroll-cue" onClick={()=>moveTo(chapters[1])} aria-label="向下查看玩法"><ArrowDown size={22} /></button></section>
+    <section className="hu-how" id={chapters[1]} data-chapter="1" aria-labelledby="hu-how-title"><div className="hu-wrap"><div className="hu-how-heading"><h2 id="hu-how-title">看清观点，<em>再开口。</em></h2><p>参与的方式，由你决定。</p></div><div className="hu-story"><div className="hu-story-stage"><div className="hu-mode-control" aria-label="预览参与方式">{features.map((f,i)=><button key={f.name} aria-pressed={mode===i} className={mode===i ? "active" : ""} onClick={()=>selectMode(i)}>{f.name}</button>)}<span style={{transform:`translateX(${mode*100}%)`}} /></div><div className="hu-story-dock" aria-hidden="true" /></div><div className="hu-story-steps">{features.map((f,i)=><article key={f.name} id={"hu-feature-"+i} data-mode={i} className={mode===i ? "active" : ""}><button className="hu-story-copy" onClick={()=>selectMode(i)} aria-label={"预览"+f.name}><span className="hu-feature-name"><span>{String(i+1).padStart(2,"0")}</span>{f.name}</span><h3>{f.title}</h3><p>{f.text}</p></button></article>)}</div></div></div></section>
     <section className="hu-try" id={chapters[2]} data-chapter="2" aria-labelledby="hu-try-title"><div className="hu-wrap"><div className="hu-final-pitch" aria-hidden="true"><span /><i /></div><SoccerBall size={38} weight="light" /><h2 id="hu-try-title">这场球，<br />你来评评理。</h2><p>挑一场比赛，留下你的看法。</p><a className="hu-action" href="#/courts">进入小法庭 · 立即体验 <ArrowRight size={22} /></a><span className="hu-try-note">无需注册 · 示例法庭持续开放</span></div></section>
     </main><footer className="hu-intro-footer hu-wrap"><div><a className="hu-intro-brand" href="#/" aria-label="HU 项目介绍"><Wordmark /></a><span>胡睿哲 Roy Hu · AI 辅助设计与开发</span><a href="https://github.com/HululuOvO/hu-sport-court" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={16} /></a></div><p>互动演示 · AI 观点摘要尚未接入。</p></footer><nav className="hu-chapter-pager" aria-label="介绍页翻屏"><span><b>{String(chapter+1).padStart(2,"0")}</b> / 03</span><button aria-label="上一屏" disabled={chapter===0} onClick={()=>moveTo(chapters[chapter-1])}><ArrowUp size={19} /></button><button aria-label="下一屏" disabled={chapter===2} onClick={()=>moveTo(chapters[chapter+1])}><ArrowDown size={19} /></button></nav></div>;
 }
