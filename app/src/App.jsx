@@ -23,6 +23,7 @@ import { Community, News, QualificationLegend, rankZone } from "./ContentPages";
 import { forumTopics, makeForumComments } from "./content-data";
 import { COURT_ONLY, parseShowcaseRoute } from "./showcase-config";
 import { CourtStateFilter } from "./CourtStateFilter";
+import { LandingPage } from "./LandingPage";
 const ScoreLink = COURT_ONLY ? "div" : "a";
 const sides = { red: "正方", blue: "反方", neutral: "不站队", hot: "热评" };
 const parseRoute = () => parseShowcaseRoute(location.hash, matches);
@@ -195,7 +196,7 @@ export function App() {
     if (route.length && !intro) mainRef.current?.focus({ preventScroll: true });
   }, [route.join("/"), intro]);
   const match = matches.find((m) => m.id === route[1]),
-    home = !route[0] || route[0] === "following";
+    home = COURT_ONLY ? route[0] === "courts" : !route[0] || route[0] === "following";
   const courtVisit = route[0] === "court" ? route[1] : null;
   const [visit, setVisit] = useState(() => ({ id: courtVisit, startedAt: Date.now() }));
   useEffect(() => {
@@ -264,6 +265,7 @@ export function App() {
     }));
     setToast("回复已加入本次体验");
   };
+  if (COURT_ONLY && !route[0]) return <LandingPage Wordmark={HUWordmark} />;
   return (
     <>
       <div className="site-atmosphere" aria-hidden="true" />
@@ -275,8 +277,8 @@ export function App() {
           </a>
           <nav className="main-nav" aria-label="主导航">
             <a
-              className={!route[0] || ["match", "court"].includes(route[0]) ? "selected" : ""}
-              href="#/"
+              className={!route[0] || ["courts", "match", "court"].includes(route[0]) ? "selected" : ""}
+              href={COURT_ONLY ? "#/courts" : "#/"}
             >
               {COURT_ONLY ? "赛后小法庭" : "比赛"}
             </a>
@@ -323,7 +325,7 @@ export function App() {
           ) : !match ? (
             <section className="panel empty">
               <h1>这场比赛暂未收录。</h1>
-              <a href="#/">返回比赛</a>
+              <a href={COURT_ONLY ? "#/courts" : "#/"}>返回比赛</a>
             </section>
           ) : !COURT_ONLY && route[0] === "match" ? (
             <MatchDetail
@@ -625,7 +627,7 @@ function Home({ followed, following, now, enter, follow }) {
               ? "预约一场比赛，就会出现在这里。"
               : "换个筛选条件看看。"}
           </p>
-          <a className="button primary" href="#/">
+          <a className="button primary" href={COURT_ONLY ? "#/courts" : "#/"}>
             {COURT_ONLY ? "返回法庭大厅" : "去看比赛"} <ArrowRight size={18} />
           </a>
         </section>
@@ -675,7 +677,7 @@ function MatchHeader({ match, now, court = false }) {
 function MatchDetail({ match, now, tab, enter, follow, followed }) {
   return (
     <>
-      <a className="back-link" href="#/">
+      <a className="back-link" href={COURT_ONLY ? "#/courts" : "#/"}>
         <ArrowLeft size={18} />
         返回比赛
       </a>
@@ -866,7 +868,7 @@ function Court({
   return (
     <>
       <div className="court-banner">
-      <a className="back-link" href="#/">
+      <a className="back-link" href={COURT_ONLY ? "#/courts" : "#/"}>
         <ArrowLeft size={18} />
         {COURT_ONLY ? "返回法庭大厅" : "返回比赛"}
       </a>

@@ -9,11 +9,13 @@ import {COURT_ONLY,parseShowcaseRoute} from '../src/showcase-config.js';
 
 test('portfolio routes resolve old sections back to the court lobby',()=>{
  assert.equal(COURT_ONLY,true);
- for(const hash of ['#/community','#/community/nation/brazil','#/news/barca-defence','#/standings/eng.1','#/scorers','#/following'])assert.deepEqual(parseShowcaseRoute(hash,matches),[]);
+ assert.deepEqual(parseShowcaseRoute('#/',matches),[]);
+ assert.deepEqual(parseShowcaseRoute('#/courts',matches),['courts']);
+ for(const hash of ['#/community','#/community/nation/brazil','#/news/barca-defence','#/standings/eng.1','#/scorers','#/following'])assert.deepEqual(parseShowcaseRoute(hash,matches),['courts']);
  assert.deepEqual(parseShowcaseRoute('#/match/m1/stats',matches),['court','m1']);
  assert.deepEqual(parseShowcaseRoute('#/court/m1/jury',matches),['court','m1','jury']);
  const scheduled=matches.find(m=>m.state==='scheduled');
- assert.deepEqual(parseShowcaseRoute('#/match/'+scheduled.id,matches),[]);
+ assert.deepEqual(parseShowcaseRoute('#/match/'+scheduled.id,matches),['courts']);
 });
 
 test('rendered lobby and every court retain the core flow without peripheral navigation',async()=>{
@@ -25,7 +27,11 @@ test('rendered lobby and every court retain the core flow without peripheral nav
   globalThis.window={matchMedia:()=>({matches:true})};
   function render(hash){globalThis.location={hash};return renderToStaticMarkup(React.createElement(App));}
   const noPeripheralLinks=html=>assert.doesNotMatch(html,/href="#\/(?:community|news|standings|scorers|following|match)(?:\/|"|\?)/);
-  const home=render('#/');noPeripheralLinks(home);
+  const introduction=render('#/');noPeripheralLinks(introduction);
+  assert.match(introduction,/终场哨响/);assert.match(introduction,/进入小法庭 · 立即体验/);
+  assert.match(introduction,/href="#\/courts"/);assert.match(introduction,/AI 观点摘要尚未接入/);
+  assert.doesNotMatch(introduction,/选择一场，开始讨论/);
+  const home=render('#/courts');noPeripheralLinks(home);
   assert.match(home,/赛后小法庭/);assert.match(home,/说说你的观点，或投上一票/);
   assert.equal((home.match(/>进入法庭</g)||[]).length,matches.filter(m=>m.demoCourt==='open').length || 6);
   for(const hash of ['#/community','#/news','#/standings']){const html=render(hash);noPeripheralLinks(html);assert.match(html,/选择一场，开始讨论/);}
