@@ -21,7 +21,7 @@ test("non-demo fixtures retain a real 12-hour expiry", () => {
   assert.equal(courtState(match, 1000 + WINDOW), "closed");
 });
 test("each league has usable examples with valid teams and separate discussions", () => {
-  for (const league of ["欧冠", "英超", "西甲", "德甲", "意甲"]) {
+  for (const league of ["欧冠", "英超", "西甲", "德甲", "意甲", "法甲"]) {
     assert.ok(matches.some(m => m.league === league && courtState(m) === "open"));
     assert.ok(matches.some(m => m.league === league && ["scheduled", "live"].includes(m.state)));
   }

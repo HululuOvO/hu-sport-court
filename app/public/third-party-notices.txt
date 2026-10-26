@@ -1,0 +1,5 @@
+HU uses MiSans fonts.
+MiSans is provided by Xiaomi, Monotype and Hanyi.
+Official source and font license: https://hyperos.mi.com/font/
+
+React Bits component notices are retained in src/components/REACT-BITS-LICENSE.txt.

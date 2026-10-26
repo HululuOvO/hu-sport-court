@@ -24,13 +24,13 @@ test('rendered lobby and every court retain the core flow without peripheral nav
  try{
   await build({entryPoints:[new URL('../src/App.jsx',import.meta.url).pathname],outfile:dir+'/App.mjs',bundle:true,platform:'node',format:'esm',jsx:'automatic',loader:{'.webp':'dataurl'},external:['react','react-dom','@phosphor-icons/react'],logLevel:'silent'});
   const {App}=await import(dir+'/App.mjs');
-  globalThis.window={matchMedia:()=>({matches:true})};
+  globalThis.window={matchMedia:()=>({matches:true,addEventListener(){},removeEventListener(){}}),addEventListener(){},removeEventListener(){}};
   function render(hash){globalThis.location={hash};return renderToStaticMarkup(React.createElement(App));}
   const noPeripheralLinks=html=>assert.doesNotMatch(html,/href="#\/(?:community|news|standings|scorers|following|match)(?:\/|"|\?)/);
   const introduction=render('#/');noPeripheralLinks(introduction);
-  assert.match(introduction,/终场哨响/);assert.match(introduction,/进入小法庭 · 立即体验/);
-  assert.equal((introduction.match(/class="hu-window-header"/g)||[]).length,1,'the opening and walkthrough share one court panel');
-  assert.match(introduction,/href="#\/courts"/);assert.match(introduction,/AI 观点摘要尚未接入/);
+  assert.match(introduction,/球迷在这里辩论、投票/);assert.match(introduction,/进入小法庭 · 立即体验/);
+  assert.equal((introduction.match(/class="hu-window-header"/g)||[]).length,2,'the opening and walkthrough both include the reusable court preview');
+  assert.match(introduction,/href="#\/courts"/);assert.match(introduction,/Roy · 设计开发/);assert.doesNotMatch(introduction,/胡睿哲|AI 辅助|字体：|互动演示/);
   assert.doesNotMatch(introduction,/选择一场，开始讨论/);
   const home=render('#/courts');noPeripheralLinks(home);
   assert.match(home,/赛后小法庭/);assert.match(home,/说说你的观点，或投上一票/);
